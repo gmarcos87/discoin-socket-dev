@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="./jsoneditor/jsoneditor.min.css">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Raleway:400,400i,700,700i|Montserrat:400&#038;subset=latin,latin-ext"
+        type="text/css" media="all" data-x-google-fonts />
+    <script src="./jsoneditor/jsoneditor.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./tiny-toast.js"></script>
+</head>
+<title>Discoin websocket</title>
+<style>
+    body {
+        padding-top: 50px;
+        background: rgb(247, 247, 247);
+        text-align: center;
+        font-family: 'Raleway', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    }
+
+    #jsoneditor {
+        display: block;
+        margin: 10px auto;
+        width: 100%;
+        height: 300px;
+    }
+
+    .jsoneditor {
+        border-radius: 4px !important;
+    }
+
+    .wrapper {
+        width: 500px;
+        margin: auto;
+    }
+
+    input {
+        border: 1px solid rgb(169, 169, 169);
+        border-radius: 4px;
+        padding: 10px;
+        display: block;
+        margin: 10px auto !important;
+        width: calc(100% - 20px);
+    }
+
+    button {
+        border: 1px solid rgb(169, 169, 169);
+        border-radius: 4px;
+        width: 100%;
+        padding: 10px 20px;
+        background: #fff;
+        cursor: pointer;
+        margin: 0px;
+    }
+
+    button:hover {
+        border-color: rgb(237, 60, 2);
+    }
+
+    .tinyToast {
+        background-color: #333 !important;
+        box-shadow: 1px 1px 1px 1px #fff;
+        border-radius: 3px !important;
+        color: #fff !important;
+        border-color: rgb(115, 115, 115) !important;
+        font-size: 14px;
+        font-weight: 300;
+    }
+</style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <h1>Send new transacction</h1>
+        <input id="accountId" placeholder="Account id" />
+        <div id="jsoneditor"></div>
+        <button id="sendButton">Send</button>
+    </div>
+    <script>
+        // create the editor
+        var container = document.getElementById("jsoneditor");
+        var options = {
+            mode: 'code'
+        };
+        var editor = new JSONEditor(container, options);
+
+        // set json
+        var json = {};
+        editor.set(json);
+
+        // get json
+        var json = editor.get();
+
+        //socket configuration
+        var socket = io.connect('http://localhost:8282', {
+            path: '/admin'
+        });
+        socket.on('connect', () => {
+            tinyToast.show('Socket connected').hide(3000)
+        })
+        socket.on('disconnect', () => {
+            tinyToast.show('Socket disconnected').hide(3000)
+        })
+        socket.on('admin', function (data) {
+            try {
+                tinyToast.show(data.msg).hide(3000)
+                console.log(data.payload)
+            } catch (e) {
+                console.log(data)
+            }
+        });
+
+        document.getElementById('sendButton').onclick = (e) => {
+            let data = {
+                account: document.getElementById('accountId').value,
+                payload: editor.get()
+            }
+            socket.emit('tx', data)
+            tinyToast.show('Tx sent to ' + data.account).hide(3000);
+            console.log('Emit', data)
+        }
+    </script>
+</body>
+
+</html>
